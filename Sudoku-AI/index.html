@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#070b16">
+  <meta name="description" content="AI Sudoku Vision & Tutor: fotografa un Sudoku, correggi la griglia e ricevi suggerimenti spiegati da Gemini oppure la soluzione completa.">
+  <title>Sudoku Vision · Tutor AI</title>
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#grid">Vai alla griglia</a>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48" role="img">
+            <rect x="6" y="6" width="36" height="36" rx="10" fill="url(#brandGrad)" opacity=".18"/>
+            <rect x="6.5" y="6.5" width="35" height="35" rx="9.5" fill="none" stroke="url(#brandGrad)" stroke-width="1.6"/>
+            <path d="M18 7v34M30 7v34M7 18h34M7 30h34" stroke="url(#brandGrad)" stroke-width="1.4" opacity=".75"/>
+            <path d="M34.5 5.5l1.3 3.7 3.7 1.3-3.7 1.3-1.3 3.7-1.3-3.7-3.7-1.3 3.7-1.3z" fill="#22d3ee"/>
+            <defs>
+              <linearGradient id="brandGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#a5b4fc"/>
+                <stop offset="1" stop-color="#22d3ee"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-kicker">AI Sudoku Vision &amp; Tutor</span>
+          <h1>Sudoku Vision</h1>
+        </div>
+      </div>
+
+      <ol class="steps" id="steps" aria-label="Flusso di lavoro">
+        <li class="step is-active" data-step="1">
+          <span class="step-number">1</span>
+          <div><strong>Acquisisci</strong><small>Foto o file</small></div>
+        </li>
+        <li class="step" data-step="2">
+          <span class="step-number">2</span>
+          <div><strong>Riconosci</strong><small>OCR con Gemini</small></div>
+        </li>
+        <li class="step" data-step="3">
+          <span class="step-number">3</span>
+          <div><strong>Verifica</strong><small>Correggi la griglia</small></div>
+        </li>
+        <li class="step" data-step="4">
+          <span class="step-number">4</span>
+          <div><strong>Risolvi</strong><small>Mosse spiegate</small></div>
+        </li>
+      </ol>
+
+      <div class="top-actions">
+        <button type="button" class="mode-pill" id="mode-pill" title="Stato della connessione Gemini">
+          <span class="dot"></span><span id="mode-label">Verifica API…</span>
+        </button>
+        <button type="button" class="icon-btn" id="btn-settings" aria-label="Apri le impostazioni" title="Impostazioni">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3.2"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6h.09A1.65 1.65 0 0 0 10.6 3.09V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="card board-card" aria-labelledby="board-title">
+        <div class="board-head">
+          <div>
+            <h2 id="board-title" class="sr-only">Griglia Sudoku</h2>
+            <p class="board-status">
+              <span class="status-dot" id="status-dot"></span>
+              <span id="grid-status" aria-live="polite">0 numeri inseriti</span>
+            </p>
+          </div>
+          <div class="board-badges">
+            <span class="badge badge--soft" id="source-badge" hidden></span>
+            <span class="badge badge--danger" id="conflict-badge" hidden>Conflitti da correggere</span>
+          </div>
+        </div>
+
+        <div class="grid-frame" id="grid-frame">
+          <div class="grid" id="grid" role="grid" aria-label="Griglia Sudoku 9 per 9"></div>
+          <div class="grid-scan" id="grid-scan" hidden aria-hidden="true"></div>
+        </div>
+
+        <p class="grid-help">
+          Clicca una cella e digita <kbd>1</kbd>–<kbd>9</kbd> · <kbd>frecce</kbd> per muoverti ·
+          <kbd>Backspace</kbd> per cancellare · puoi incollare 81 cifre.
+        </p>
+
+        <div class="board-actions">
+          <button type="button" class="btn btn--primary" id="btn-hint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 18h6M10 21h4M12 3a6.3 6.3 0 0 0-3.6 11.4c.6.5.9 1.2.9 2V18h5.4v-1.6c0-.8.3-1.5.9-2A6.3 6.3 0 0 0 12 3z"/>
+            </svg>
+            Suggerisci mossa
+          </button>
+          <button type="button" class="btn btn--accent" id="btn-solve">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/>
+              <path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/>
+            </svg>
+            Risolvi Sudoku
+          </button>
+          <div class="board-actions-secondary">
+            <button type="button" class="btn btn--ghost btn--icon" id="btn-undo" title="Annulla l'ultima modifica" aria-label="Annulla ultima modifica" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>
+              </svg>
+            </button>
+            <button type="button" class="btn btn--ghost btn--icon" id="btn-clear" title="Svuota la griglia" aria-label="Svuota la griglia">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13h10l1-13M10 11v6M14 11v6"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="hint-level">
+          <span class="hint-level-label">Aiuto graduale</span>
+          <div class="segmented" id="hint-level" role="group" aria-label="Livello di aiuto">
+            <button type="button" data-level="1">1 · Blocco</button>
+            <button type="button" data-level="2">2 · Cella</button>
+            <button type="button" data-level="3" class="is-active">3 · Numero</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="sidebar">
+        <section class="card capture-card" id="capture-card">
+          <div class="card-head">
+            <h2><span class="step-index">1</span> Acquisisci lo schema</h2>
+            <span class="badge badge--soft" id="capture-badge">Foto</span>
+          </div>
+
+          <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Carica o scatta la foto del Sudoku">
+            <div class="dropzone-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.3l1.2-1.7h6l1.2 1.7h1.3A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"/>
+                <circle cx="12" cy="12.5" r="3.4"/>
+              </svg>
+            </div>
+            <div class="dropzone-copy">
+              <strong id="dropzone-title">Scatta o carica una foto</strong>
+              <span id="dropzone-sub">JPG, PNG o WEBP · trascina qui il file</span>
+            </div>
+            <div class="dropzone-actions">
+              <button type="button" class="btn btn--small btn--primary" id="btn-camera">Fotocamera</button>
+              <button type="button" class="btn btn--small" id="btn-file">Scegli file</button>
+            </div>
+            <input type="file" id="file-input" accept="image/*" hidden>
+          </div>
+
+          <div class="photo-preview" id="photo-preview" hidden>
+            <button type="button" class="photo-thumb" id="photo-thumb-btn" aria-label="Apri l'overlay sulla foto">
+              <img id="photo-thumb" alt="Anteprima della foto del Sudoku">
+              <span class="photo-thumb-hint">Apri overlay</span>
+            </button>
+            <div class="photo-meta">
+              <strong id="photo-name">schema.jpg</strong>
+              <span id="photo-state">Foto pronta</span>
+              <div class="photo-actions">
+                <button type="button" class="btn btn--small" id="btn-reocr">Riconosci di nuovo</button>
+                <button type="button" class="btn btn--small btn--ghost" id="btn-change-photo">Sostituisci</button>
+                <button type="button" class="btn btn--small btn--ghost" id="btn-overlay">Overlay</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="ocr-progress" id="ocr-progress" hidden>
+            <div class="scan-line" aria-hidden="true"></div>
+            <div class="ocr-copy">
+              <strong>Gemini sta leggendo la griglia…</strong>
+              <span><span id="ocr-elapsed">0</span> s</span>
+            </div>
+            <div class="progress"><div class="progress-bar" id="ocr-bar"></div></div>
+          </div>
+
+          <div class="inline-error" id="ocr-error" hidden role="alert">
+            <strong id="ocr-error-title">Riconoscimento non riuscito</strong>
+            <p id="ocr-error-text"></p>
+            <div class="inline-error-actions">
+              <button type="button" class="btn btn--small btn--primary" id="btn-ocr-retry">Riprova</button>
+              <button type="button" class="btn btn--small btn--ghost" id="btn-ocr-manual">Inserisci a mano</button>
+            </div>
+          </div>
+
+          <div class="samples">
+            <span>Prova un esempio:</span>
+            <div class="chips" id="samples">
+              <button type="button" class="chip" data-sample="facile">Facile</button>
+              <button type="button" class="chip" data-sample="medio">Medio</button>
+              <button type="button" class="chip" data-sample="difficile">Difficile</button>
+            </div>
+          </div>
+
+          <p class="mini-note">
+            La foto viene inviata solo al modello Gemini per il riconoscimento: nessun altro server esterno.
+          </p>
+        </section>
+
+        <section class="card tutor-card" id="tutor-card">
+          <div class="tutor-head">
+            <div class="avatar" id="avatar" data-mood="idle" aria-hidden="true">
+              <svg viewBox="0 0 120 120" class="avatar-svg">
+                <defs>
+                  <linearGradient id="avatarGradient" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#818cf8"/>
+                    <stop offset="1" stop-color="#22d3ee"/>
+                  </linearGradient>
+                  <linearGradient id="avatarFace" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#16213a"/>
+                    <stop offset="1" stop-color="#0b1224"/>
+                  </linearGradient>
+                </defs>
+                <ellipse cx="60" cy="108" rx="30" ry="5.5" fill="rgba(2,6,23,.55)"/>
+                <g class="antenna">
+                  <line x1="60" y1="21" x2="60" y2="10" stroke="#a5b4fc" stroke-width="4" stroke-linecap="round"/>
+                  <circle cx="60" cy="8" r="5" fill="#22d3ee"/>
+                </g>
+                <rect x="18" y="25" width="84" height="74" rx="26" fill="url(#avatarGradient)" opacity=".2"/>
+                <rect x="21" y="28" width="78" height="68" rx="22" fill="url(#avatarGradient)"/>
+                <rect x="28" y="35" width="64" height="53" rx="17" fill="url(#avatarFace)"/>
+                <g class="eyes eyes-open">
+                  <circle cx="47" cy="58" r="6.6" fill="#e0f2fe"/>
+                  <circle cx="73" cy="58" r="6.6" fill="#e0f2fe"/>
+                  <circle cx="48.4" cy="59.6" r="2.9" fill="#0b1224"/>
+                  <circle cx="74.4" cy="59.6" r="2.9" fill="#0b1224"/>
+                </g>
+                <g class="eyes eyes-happy">
+                  <path d="M40 59.5q7-9 14 0M66 59.5q7-9 14 0" fill="none" stroke="#e0f2fe" stroke-width="4" stroke-linecap="round"/>
+                </g>
+                <g class="eyes eyes-think">
+                  <circle cx="45" cy="56" r="5.8" fill="#e0f2fe"/>
+                  <circle cx="73" cy="56" r="5.8" fill="#e0f2fe"/>
+                  <circle cx="46.6" cy="54" r="2.7" fill="#0b1224"/>
+                  <circle cx="74.6" cy="54" r="2.7" fill="#0b1224"/>
+                </g>
+                <path class="mouth mouth-smile" d="M48 72q12 10 24 0" fill="none" stroke="#22d3ee" stroke-width="3.6" stroke-linecap="round"/>
+                <path class="mouth mouth-flat" d="M50 74h20" fill="none" stroke="#22d3ee" stroke-width="3.4" stroke-linecap="round"/>
+                <circle class="mouth mouth-o" cx="60" cy="75" r="5" fill="none" stroke="#22d3ee" stroke-width="3.2"/>
+                <g class="cheeks" opacity=".55">
+                  <circle cx="35" cy="69" r="4.2" fill="#f472b6"/>
+                  <circle cx="85" cy="69" r="4.2" fill="#f472b6"/>
+                </g>
+              </svg>
+            </div>
+            <div class="bubble">
+              <span class="bubble-kicker">Tutor AI</span>
+              <strong id="tutor-title">Pronto quando vuoi</strong>
+              <p id="tutor-text">Carica una foto, scegli un esempio o inserisci i numeri a mano. Ti guiderò una mossa alla volta.</p>
+            </div>
+          </div>
+
+          <div class="hint-detail" id="hint-detail" hidden>
+            <div class="hint-meta">
+              <span class="badge" id="hint-technique"></span>
+              <span class="hint-coord" id="hint-coord"></span>
+              <span class="badge badge--src" id="hint-source"></span>
+            </div>
+            <p class="hint-explanation" id="hint-explanation"></p>
+            <div class="candidate-row" id="candidate-row" hidden>
+              <span>Candidati:</span>
+              <div class="chips" id="candidate-chips"></div>
+            </div>
+            <div class="hint-actions">
+              <button type="button" class="btn btn--small" id="btn-speak">Ascolta</button>
+              <button type="button" class="btn btn--small btn--ghost" id="btn-next-level" hidden>Svela il numero</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card tips-card">
+          <div class="card-head">
+            <h2>Come funziona</h2>
+            <span class="badge badge--soft">Guida</span>
+          </div>
+          <ol class="pipeline">
+            <li>
+              <span>1</span>
+              <div><strong>Riconoscimento multimodale</strong><p>Gemini legge la griglia dalla foto e restituisce un JSON 9×9.</p></div>
+            </li>
+            <li>
+              <span>2</span>
+              <div><strong>Verifica umana</strong><p>Correggi le celle incerte: l'app segnala i conflitti in tempo reale.</p></div>
+            </li>
+            <li>
+              <span>3</span>
+              <div><strong>Solutore ibrido</strong><p>Il motore locale sceglie la mossa certa, Gemini la spiega in italiano.</p></div>
+            </li>
+            <li>
+              <span>4</span>
+              <div><strong>Tutor e overlay</strong><p>Voce, aiuto graduale in 3 livelli e numeri disegnati sulla foto.</p></div>
+            </li>
+          </ol>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="footer">
+      <p>Progetto didattico <strong>AI Sudoku Vision &amp; Tutor</strong> · Gemini API + solutore locale · <span id="footer-year">2026</span></p>
+      <p class="footer-note">Nessuna API key viene salvata nel codice sorgente.</p>
+    </footer>
+  </div>
+
+  <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="false"></div>
+
+  <!-- Fotocamera -->
+  <dialog class="modal" id="camera-dialog">
+    <div class="modal-body">
+      <header class="modal-head">
+        <div>
+          <h2>Scatta la foto</h2>
+          <p>Inquadra tutta la griglia, dritta e senza riflessi.</p>
+        </div>
+        <button type="button" class="icon-btn" data-close-dialog="camera-dialog" aria-label="Chiudi fotocamera">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </header>
+      <div class="camera-frame" id="camera-frame">
+        <video id="camera-video" playsinline autoplay muted></video>
+        <div class="camera-guide" aria-hidden="true"><span>Allinea i bordi della griglia</span></div>
+      </div>
+      <p class="form-error" id="camera-error" hidden></p>
+      <footer class="modal-actions">
+        <button type="button" class="btn btn--ghost" id="btn-camera-switch">Cambia fotocamera</button>
+        <button type="button" class="btn btn--ghost" id="btn-camera-fallback">Carica un file</button>
+        <button type="button" class="btn btn--primary" id="btn-camera-shot">Scatta</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <!-- Overlay fotografico -->
+  <dialog class="modal modal--wide" id="overlay-dialog">
+    <div class="modal-body">
+      <header class="modal-head">
+        <div>
+          <h2>Overlay sulla foto</h2>
+          <p>I numeri risolti vengono disegnati direttamente sullo schema fotografato.</p>
+        </div>
+        <button type="button" class="icon-btn" id="btn-overlay-close-x" aria-label="Chiudi overlay">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </header>
+      <div class="overlay-stage">
+        <canvas id="overlay-canvas" aria-label="Numeri risolti sovrapposti alla foto"></canvas>
+      </div>
+      <p class="overlay-note" id="overlay-note">Trascina gli angoli per allineare la griglia alla foto.</p>
+      <footer class="modal-actions overlay-controls">
+        <label class="switch-row">
+          <input type="checkbox" id="overlay-only-ai" checked>
+          <span>Solo numeri aggiunti</span>
+        </label>
+        <button type="button" class="btn btn--ghost" id="btn-overlay-edit">Regola angoli</button>
+        <button type="button" class="btn btn--ghost" id="btn-overlay-reset">Angoli automatici</button>
+        <button type="button" class="btn btn--primary" id="btn-overlay-close">Chiudi</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <!-- Impostazioni -->
+  <dialog class="modal" id="settings-dialog">
+    <form class="modal-body" id="settings-form" method="dialog">
+      <header class="modal-head">
+        <div>
+          <h2>Impostazioni</h2>
+          <p>Chiave API, modello Gemini e preferenze del tutor.</p>
+        </div>
+        <button type="submit" class="icon-btn" aria-label="Chiudi impostazioni">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </header>
+
+      <div class="api-status" id="api-status">
+        <span class="dot"></span>
+        <div>
+          <strong id="api-status-title">Verifica in corso…</strong>
+          <span id="api-status-text">Controllo del collegamento con Gemini.</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="settings-key">Chiave API Gemini</label>
+        <input type="password" id="settings-key" placeholder="AIza…" autocomplete="off" spellcheck="false">
+        <small>
+          La chiave si ottiene da <strong>Google AI Studio</strong>. Con <code>server.py</code> puoi lasciarla nel
+          file <code>.env</code> e non inserirla qui.
+        </small>
+      </div>
+      <div class="inline-actions">
+        <button type="button" class="btn btn--small btn--primary" id="btn-save-key">Salva chiave</button>
+        <button type="button" class="btn btn--small btn--ghost" id="btn-remove-key">Rimuovi</button>
+        <button type="button" class="btn btn--small btn--ghost" id="btn-test-api">Verifica connessione</button>
+      </div>
+
+      <div class="field">
+        <label for="settings-model">Modello Gemini</label>
+        <input type="text" id="settings-model" list="model-options" spellcheck="false" autocomplete="off">
+        <datalist id="model-options"></datalist>
+        <small>Consigliato: <code>gemini-3.5-flash-lite</code>. I modelli cambiano spesso: il proxy ripiega da solo su uno disponibile.</small>
+      </div>
+
+      <div class="field">
+        <label for="settings-engine">Motore del suggerimento</label>
+        <select id="settings-engine">
+          <option value="hybrid">Ibrido — mossa locale + spiegazione Gemini (consigliato)</option>
+          <option value="gemini">Solo Gemini — il modello propone la mossa</option>
+          <option value="local">Solo locale — nessuna chiamata API</option>
+        </select>
+        <small>In modalità ibrida il solutore locale garantisce che la mossa sia corretta.</small>
+      </div>
+
+      <label class="switch-row">
+        <input type="checkbox" id="settings-speech">
+        <span>Leggi ad alta voce le spiegazioni (Web Speech API)</span>
+      </label>
+
+      <footer class="modal-actions">
+        <button type="submit" class="btn btn--primary">Chiudi</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <noscript>
+    <div class="noscript">Questa applicazione richiede JavaScript per funzionare.</div>
+  </noscript>
+
+  <script>
+    // I moduli ES non funzionano da file://: avvisa l'utente con istruzioni chiare.
+    if (window.location.protocol === 'file:') {
+      window.addEventListener('DOMContentLoaded', function () {
+        var banner = document.createElement('div');
+        banner.className = 'file-warning';
+        banner.innerHTML =
+          '<strong>Avvia l\'app con il server locale.</strong> ' +
+          'Apri il terminale nella cartella del progetto, esegui <code>py -3 server.py</code> ' +
+          'e visita <code>http://localhost:8765</code>.';
+        document.body.prepend(banner);
+      });
+    }
+  </script>
+
+  <script type="module" src="assets/js/app.js"></script>
+</body>
+</html>
