@@ -66,6 +66,25 @@ py -3 server.py --host 0.0.0.0
 > Il server serve i file statici e fa da proxy verso Gemini, così la chiave non
 > raggiunge mai il browser. In alternativa `py -m http.server` funziona per la UI,
 > ma senza proxy dovrai inserire la chiave nelle impostazioni (modalità demo).
+
+### Deploy pubblico su Vercel
+
+Vercel serve i file statici e trasforma `api/*.py` in serverless functions:
+
+1. Fai il commit e il push di tutti i file **tranne `.env`** (già ignorato da Git).
+2. In Vercel: **Settings → General → Root Directory** = cartella che contiene
+   `index.html` (es. `Sudoku-AI`); **Framework Preset** = `Other`;
+   **Build Command** vuota; **Output Directory** = `.`.
+3. **Settings → Environment Variables**: aggiungi `GEMINI_API_KEY` con la chiave,
+   selezionando **Production**. Aggiungi eventualmente `GEMINI_MODEL` e
+   `GEMINI_FALLBACK_MODELS` (vedi `.env.example`).
+4. **Deployments → Redeploy**.
+5. Verifica `https://<progetto>.vercel.app/api/health`: deve rispondere
+   `"configured": true`. Solo allora OCR e tutor funzioneranno.
+
+La chiave resta lato server: non inserirla mai nelle impostazioni del browser
+per un link pubblico.
+
 ### Pagina di test
 
 Con il server attivo apri <http://localhost:8765/tests.html>:
@@ -81,6 +100,11 @@ Sudoku-AI/
 ├── index.html                  # UI completa (griglia, tutor, dialog)
 ├── tests.html                  # runner dei test nel browser
 ├── server.py                   # server statico + proxy Gemini (.env)
+├── api/
+│   ├── gemini.py               # proxy Gemini come Vercel Function
+│   └── health.py               # /api/health per il deploy Vercel
+├── vercel.json                 # config deploy (nessun build, framework "Other")
+├── pyproject.toml              # runtime Python 3.12, zero dipendenze
 ├── avvia.bat                   # launcher Windows
 ├── .env.example                # modello di configurazione (nessun segreto)
 ├── .gitignore                  # esclude .env, cache, ecc.
